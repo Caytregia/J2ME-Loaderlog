@@ -22,6 +22,7 @@ import static android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.media.MediaScannerConnection;
 import android.os.Environment;
 import android.os.StrictMode;
 import android.util.Log;
@@ -313,8 +314,14 @@ public class MicroLoader {
 					if (!screenshotDir.exists() && !screenshotDir.mkdirs()) {
 						throw new IOException("Can't create directory: " + screenshotDir);
 					}
-					FileOutputStream out = new FileOutputStream(screenshotFile);
-					bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+					try (FileOutputStream out = new FileOutputStream(screenshotFile)) {
+						bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+						out.flush();
+					}
+					// Báo cho MediaStore/Thư viện ảnh quét file mới để hiện trong app Hình ảnh
+					MediaScannerConnection.scanFile(ContextHolder.getAppContext(),
+							new String[]{screenshotFile.getAbsolutePath()},
+							new String[]{"image/png"}, null);
 					return screenshotFile.getAbsolutePath();
 				})
 				.observeOn(AndroidSchedulers.mainThread())
